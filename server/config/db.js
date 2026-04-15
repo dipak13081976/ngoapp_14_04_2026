@@ -1,9 +1,11 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 
-// The pool will automatically use values from .env if they exist.
-// If not, it falls back to the defaults (ideal for local XAMPP).
-const db = mysql.createPool({
+// 1. Check if we are using the Aiven Cloud Database
+const isCloudDB = process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud');
+
+// 2. Set up the basic configuration
+const dbConfig = {
     host: process.env.DB_HOST || '127.0.0.1',
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
@@ -12,16 +14,24 @@ const db = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    // Recommended for production to prevent connection timeouts
     enableKeepAlive: true,
     keepAliveInitialDelay: 10000
-});
+};
+
+// 3. SMART SWITCH: Only add SSL if we are connecting to the Cloud!
+if (isCloudDB) {
+    dbConfig.ssl = { rejectUnauthorized: false };
+}
+
+// 4. Create the connection
+const db = mysql.createPool(dbConfig);
 
 db.getConnection((err, connection) => {
     if (err) {
         console.error('❌ Database connection failed: ' + err.message);
     } else {
-        console.log(`✅ Connected to database: ${process.env.DB_NAME || 'mathemat_ngo'}`);
+        // ✅ FIXED: The backticks (`) are correctly wrapped around the entire message!
+        console.log(`✅ Connected to database: ${process.env.DB_NAME || 'mathemat_ngo'} (Cloud SSL: ${isCloudDB ? 'ON' : 'OFF'})`);
         connection.release();
     }
 });
