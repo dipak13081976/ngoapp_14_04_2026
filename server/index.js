@@ -1,10 +1,6 @@
-
-
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 // Import the modular API routes
 const apiRoutes = require('./routes/apiRoutes');
@@ -21,34 +17,18 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api', apiRoutes);
 
 // ==========================================
-// CPANEL DEPLOYMENT / PRODUCTION SETUP
+// RENDER DEPLOYMENT SETUP
 // ==========================================
-// When running in production (like on cPanel), the Node server acts as both 
-// the API backend AND the file server for the React frontend.
-if (process.env.NODE_ENV === 'production') {
-    // Point to the Vite 'dist' folder (one level up from backend into frontend)
-    const frontendDistPath = path.join(__dirname, '../frontend/dist');
+// ✅ FIXED: Removed the cPanel code that was searching for the React 'dist' folder.
+// Render is now strictly acting as your Backend API, and Vercel handles the Frontend.
 
-    // Serve the static files from the React build
-    app.use(express.static(frontendDistPath));
+app.get('/', (req, res) => {
+    res.send('✅ NGO Backend API is running perfectly on Render!');
+});
 
-    // Handle React Router: Send all other requests to index.html so React can take over routing
-    // ✅ FIX: Changed the string '*' to a Regular Expression /.*/ to prevent path-to-regexp crashes
-    app.get(/.*/, (req, res) => {
-        res.sendFile(path.resolve(frontendDistPath, 'index.html'));
-    });
-} else {
-    // Development fallback message if accessing root directly
-    app.get('/', (req, res) => {
-        res.send('Ngo API is running in Development mode...');
-    });
-}
-
+// Render automatically assigns a port (usually 10000)
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    if (process.env.NODE_ENV === 'production') {
-        console.log(`🌍 Running in Production Mode (Ready for cPanel/Internet)`);
-    }
 });
